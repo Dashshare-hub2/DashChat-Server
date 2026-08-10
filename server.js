@@ -3,7 +3,7 @@ const http = require('http');
 const { Server } = require('socket.io');
 const cors = require('cors');
 const session = require('express-session');
-const { GoogleGenAI } = require('@google/genai');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 const app = express();
 const server = http.createServer(app);
@@ -25,17 +25,16 @@ app.use(session({
 
 async function filterMessage(text) {
   try {
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: `Analyze and sanitize the following chat message. If it contains offensive language, toxicity, or slurs in ANY language, return a sanitized version with inappropriate words replaced by stars (***). Return ONLY the sanitized string without extra comments.\n\nMessage: "${text}"`
-    });
-    return response.text.trim();
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const prompt = `Analyze and sanitize the following chat message. If it contains offensive language, toxicity, or slurs in ANY language, return a sanitized version with inappropriate words replaced by stars (***). Return ONLY the sanitized string without extra comments.\n\nMessage: "${text}"`;
+
+    const result = await model.generateContent(prompt);
+    return result.response.text().trim();
   } catch (err) {
     console.error('AI Moderation Error:', err);
-    return text; 
+    return text;
   }
 }
-
 io.on('connection', (socket) => {
   console.log(`User connected: ${socket.id}`);
 
