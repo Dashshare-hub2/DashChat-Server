@@ -9,11 +9,10 @@ const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
 
 const CLIENT_ID = '1536353977304621077';
-const CLIENT_SECRET = process.env.DISCORD_CLIENT_SECRET || 'YOUR_DISCORD_CLIENT_SECRET';
+const CLIENT_SECRET = process.env.DISCORD_CLIENT_SECRET || 'YOUR_CLIENT_SECRET';
 const REDIRECT_URI = 'https://dashchat-rsuk.onrender.com/auth/discord/callback';
 
-const users = new Map(); 
-const inviteCodes = new Map(); 
+const users = new Map();
 
 app.use(express.static(path.join(__dirname, 'views')));
 
@@ -51,12 +50,12 @@ app.get('/', (req, res) => {
 
 app.get('/auth/discord/callback', async (req, res) => {
     const code = req.query.code;
-    if (!code) return res.status(400).send('No authorization code provided.');
+    if (!code) return res.status(400).send('Missing code parameter.');
 
     try {
         const params = new URLSearchParams();
         params.append('client_id', CLIENT_ID);
-        params.append('client_secret', process.env.DISCORD_CLIENT_SECRET || 'CLIENT_SECRET_CUA_BAN');
+        params.append('client_secret', CLIENT_SECRET);
         params.append('grant_type', 'authorization_code');
         params.append('code', code);
         params.append('redirect_uri', REDIRECT_URI);
@@ -79,24 +78,22 @@ app.get('/auth/discord/callback', async (req, res) => {
             <html>
             <body style="background:#1a1a24;color:#fff;font-family:sans-serif;text-align:center;padding:3rem;">
                 <h2 style="color:#00ffcc;">Authentication Successful!</h2>
-                <p>Copy your session token and paste it into DashChat Geode Settings:</p>
+                <p>Welcome <b>${username}</b>! Copy your session token below:</p>
                 <div style="background:#111;padding:12px;color:#00ffcc;font-family:monospace;margin:1rem auto;max-width:400px;word-break:break-all;border-radius:6px;">${userToken}</div>
             </body>
             </html>
         `);
     } catch (err) {
-        console.error('Discord OAuth Error:', err.response ? err.response.data : err.message);
+        if (err.response && err.response.status === 429) {
+            const retryAfter = err.response.headers['retry-after'] || 5;
+            return res.status(429).send(`
+                <body style="background:#1a1a24;color:#ff4d4d;font-family:sans-serif;text-align:center;padding:3rem;">
+                    <h2>Rate Limited by Discord!</h2>
+                    <p>Too many requests. Please wait <b>${retryAfter} seconds</b> before trying again.</p>
+                </body>
+            `);
+        }
         res.status(500).send('Authentication failed: ' + (err.response?.data?.error_description || err.message));
-    }
-});
-
-app.get('/invite/:code', (req, res) => {
-    const code = req.params.code;
-    const levelID = inviteCodes.get(code);
-    if (levelID) {
-        res.send(`Redirecting to Level ID: ${levelID} in Geometry Dash...`);
-    } else {
-        res.status(404).send('Invalid Invite Code');
     }
 });
 
@@ -107,7 +104,7 @@ wss.on('connection', (ws, req) => {
 
     ws.send(JSON.stringify({
         sender: 'System',
-        text: `Welcome ${username} to DashChat!`,
+        text: `Connected as ${username}`,
         color: '#00FF00'
     }));
 
@@ -133,5 +130,5 @@ wss.on('connection', (ws, req) => {
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
-    console.log(`Server listening on port ${PORT}`);
+    console.log(`DashChat Server running on port ${PORT}`);
 });
