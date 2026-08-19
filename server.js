@@ -51,21 +51,22 @@ app.get('/', (req, res) => {
 
 app.get('/auth/discord/callback', async (req, res) => {
     const code = req.query.code;
-    if (!code) return res.send('No code provided.');
+    if (!code) return res.status(400).send('No authorization code provided.');
 
     try {
-        const tokenResponse = await axios.post('https://discord.com/api/oauth2/token', new URLSearchParams({
-            client_id: CLIENT_ID,
-            client_secret: CLIENT_SECRET,
-            grant_type: 'authorization_code',
-            code: code,
-            redirect_uri: REDIRECT_URI,
-        }), {
+        const params = new URLSearchParams();
+        params.append('client_id', CLIENT_ID);
+        params.append('client_secret', process.env.DISCORD_CLIENT_SECRET || 'CLIENT_SECRET_CUA_BAN');
+        params.append('grant_type', 'authorization_code');
+        params.append('code', code);
+        params.append('redirect_uri', REDIRECT_URI);
+
+        const tokenResponse = await axios.post('https://discord.com/api/v10/oauth2/token', params, {
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
         });
 
         const accessToken = tokenResponse.data.access_token;
-        const userResponse = await axios.get('https://discord.com/api/users/@me', {
+        const userResponse = await axios.get('https://discord.com/api/v10/users/@me', {
             headers: { Authorization: `Bearer ${accessToken}` }
         });
 
@@ -74,14 +75,18 @@ app.get('/auth/discord/callback', async (req, res) => {
         users.set(userToken, username);
 
         res.send(`
-            <body style="background:#1a1a24;color:#fff;font-family:sans-serif;text-align:center;padding:2rem;">
-                <h2>Authentication Successful!</h2>
-                <p>Copy this session token and paste it into DashChat Geode Settings:</p>
-                <div style="background:#111;padding:1rem;color:#00ffcc;font-family:monospace;margin:1rem auto;max-width:400px;word-break:break-all;">${userToken}</div>
+            <!DOCTYPE html>
+            <html>
+            <body style="background:#1a1a24;color:#fff;font-family:sans-serif;text-align:center;padding:3rem;">
+                <h2 style="color:#00ffcc;">Authentication Successful!</h2>
+                <p>Copy your session token and paste it into DashChat Geode Settings:</p>
+                <div style="background:#111;padding:12px;color:#00ffcc;font-family:monospace;margin:1rem auto;max-width:400px;word-break:break-all;border-radius:6px;">${userToken}</div>
             </body>
+            </html>
         `);
     } catch (err) {
-        res.status(500).send('Authentication failed.');
+        console.error('Discord OAuth Error:', err.response ? err.response.data : err.message);
+        res.status(500).send('Authentication failed: ' + (err.response?.data?.error_description || err.message));
     }
 });
 
