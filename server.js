@@ -17,8 +17,7 @@ const users = new Map();
 app.use(express.static(path.join(__dirname, 'views')));
 
 app.get('/', (req, res) => {
-    res.send(`
-    <!DOCTYPE html>
+    res.send(`<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -44,8 +43,7 @@ app.get('/', (req, res) => {
         </a>
     </div>
 </body>
-</html>
-`);
+</html>`);
 });
 
 app.get('/auth/discord/callback', async (req, res) => {
